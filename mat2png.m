@@ -3,7 +3,7 @@ clear all; close all; clc;
 addpath(genpath(pwd));
 
 %% Initialization
-ext = '.png';
+ext = '.tif';
 folderName = uigetdir(pwd);
 listing = dir(fullfile(folderName,'*.mat'));
 imagesFolderName = fullfile(folderName, 'Images');
@@ -37,11 +37,15 @@ for k = 1:numFiles
     image = matFile.image;
     image = uint16(image);
     image = imadjust(image);
+%     imageName = fullfile(imagesFolderName, ...
+%                 strcat(baseFileName, '_' , label, '_image', ext)); % Default
     imageName = fullfile(imagesFolderName, ...
-                strcat(baseFileName, '_' , label, '_image', ext));
+                strcat(baseFileName, '_tumor', ext)); % U-net
     mask = matFile.tumorMask;
+%     maskName = fullfile(masksFolderName, ...
+%                strcat(baseFileName, '_' , label, '_mask', ext)); % Default
     maskName = fullfile(masksFolderName, ...
-               strcat(baseFileName, '_' , label, '_mask', ext));
+               strcat(baseFileName, '_tumor_mask', ext)); % U-net
     imwrite(image, imageName); 
     imwrite(mask, maskName);
 end
