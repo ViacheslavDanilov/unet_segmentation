@@ -7,7 +7,6 @@ DATA_PATH = 'data'
 EXT = 'png'
 IMG_WIDTH = 512
 IMG_HEIGHT = 512
-IS_VISUALIZE = True
 
 class DataProcess(object):
 
@@ -29,8 +28,8 @@ class DataProcess(object):
             i = 0
             images_list = os.listdir(images_path)
             num_samples = int(len(images_list))
-            images = np.ndarray((num_samples, self.__img_height, self.__img_width, 1), dtype=np.uint8)
-            masks = np.ndarray((num_samples, self.__img_height, self.__img_width, 1), dtype=np.uint8)
+            images = np.ndarray((num_samples, 1, self.__img_height, self.__img_width), dtype=np.uint8)
+            masks = np.ndarray((num_samples, 1, self.__img_height, self.__img_width), dtype=np.uint8)
 
             print('-' * 27)
             print('Creating ' + self.__data_type + 'ing images...')
@@ -49,19 +48,9 @@ class DataProcess(object):
 
                 image = np.array([image])
                 mask = np.array([mask])
-                image = image.transpose(1, 2, 0)
-                mask = mask.transpose(1, 2, 0)
+
                 images[i] = image
                 masks[i] = mask
-
-                if IS_VISUALIZE:
-                    temp_image = images[i].reshape([512, 512])
-                    temp_mask = masks[i].reshape([512, 512])
-                    stacked_image = np.hstack((temp_image, temp_mask))
-                    # temp_name = 'Source image and its mask ({})'.format(image_name)
-                    # cv2.imshow(temp_name, stacked_image)
-                    cv2.imshow('Source image and its mask', stacked_image)
-                    cv2.waitKey(2000)
 
                 if i % 100 == 0:
                     print('Done: {0}/{1} images'.format(i, num_samples))
@@ -77,8 +66,8 @@ class DataProcess(object):
             print('-' * 66)
 
     def image_rescale(self, image, mask, interpolation=cv2.INTER_CUBIC):
-        output_image = cv2.resize(image, (self.__img_height, self.__img_width), interpolation=interpolation)
-        output_mask = cv2.resize(mask, (self.__img_height, self.__img_width), interpolation=interpolation)
+        output_image = cv2.resize(image, (self.__img_width, self.__img_width), interpolation=interpolation)
+        output_mask = cv2.resize(mask, (self.__img_width, self.__img_width), interpolation=interpolation)
         return output_image, output_mask
 
     def load_train_data(self):

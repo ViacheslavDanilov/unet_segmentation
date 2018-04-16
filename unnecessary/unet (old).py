@@ -1,72 +1,33 @@
-from __future__ import print_function
-
-import os
-import cv2
-from pathlib import Path
-import numpy as np
-import matplotlib.pyplot as plt
+from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Model
 from keras.layers import (Input,
                           Conv2D,
                           Conv2DTranspose,
                           concatenate,
                           MaxPooling2D)
+from keras.callbacks import ModelCheckpoint
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras import backend as K
 
+
+# K.set_image_dim_ordering('tf')
 # K.set_image_data_format('channels_last')
+IMG_WIDTH = 512
+IMG_HEIGHT = 512
 
-data_path = 'data/'
-save_path = 'save/'
-image_rows = 512
-image_cols = 512
+if K.image_data_format() == 'channels_first':
+    input_shape = (1, IMG_WIDTH, IMG_HEIGHT)
+else:
+    input_shape = (IMG_WIDTH, IMG_HEIGHT, 1)
 
-def create_train_data():
-    i = 0
-    train_data_path = os.path.join(data_path, 'train')
-    images_list = os.listdir(train_data_path)
-    number_of_samples = int(len(images_list)/2)
-    images = np.ndarray((number_of_samples, 1, image_rows, image_cols), dtype=np.uint8)
-    masks = np.ndarray((number_of_samples, 1, image_rows, image_cols), dtype=np.uint8)
-
-    print('-'*40)
-    print('Creating training images...')
-    print('-'*40)
-
-    for image_name in images_list:
-        if 'mask' in image_name:
-            continue
-        mask_name = image_name.split('.')[0]+'_mask.tif'
-        image = cv2.imread(os.path.join(train_data_path, image_name), cv2.IMREAD_GRAYSCALE)
-        mask = cv2.imread(os.path.join(train_data_path, mask_name), cv2.IMREAD_GRAYSCALE)
-
-        image = np.array([image])
-        mask = np.array([mask])
-
-        images[i] = image
-        masks[i] = mask
-
-        if i % 100 == 0:
-            print('Done: {0}/{1} images'.format(i, number_of_samples))
-        i += 1
-    print('Loading done.')
-
-    images_path = Path(os.path.join(data_path, 'npy files'), 'images_train.npy')
-    masks_path = Path(os.path.join(data_path, 'npy files'), 'masks_train.npy')
-    if images_path.is_file() == False:
-        np.save(os.path.join(data_path, 'npy files', 'images_train.npy'), images)
-        np.save(os.path.join(data_path, 'npy files', 'masks_train.npy'), masks)
-        print('Saving to .npy files done.')
-    else:
-        print('images_train.npy and masks_train.npy already created.')
-
-def load_train_data():
-    images_train = np.load('images_train.npy')
-    masks_train = np.load('masks_train.npy')
-    return images_train, masks_train
-
-
+datagen = ImageDataGenerator(rotation_range=40,
+                             width_shift_range=0.2,
+                             height_shift_range=0.2,
+                             shear_range=0.2,
+                             zoom_range=0.2,
+                             horizontal_flip=True,
+                             vertical_flip=True,
+                             fill_mode='nearest')
 
 def dice_coef(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
@@ -89,7 +50,7 @@ def dice_coef_loss_2(y_true, y_pred):
     return K.mean(1 - dice_coef(y_true, y_pred), axis=-1)
 
 def get_unet():
-    inputs = Input((image_rows, image_cols, 1))
+    inputs = Input((IMG_HEIGHT, IMG_WIDTH, 1))
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
@@ -133,7 +94,47 @@ def get_unet():
 
     return model
 
+def train_and_predict():
+    data_gen_args = dict(rotation_range=90.,
+                         width_shift_range=0.1,
+                         height_shift_range=0.1,
+                         zoom_range=0.2)
+    image_datagen = ImageDataGenerator(**data_gen_args)
+    mask_datagen = ImageDataGenerator(**data_gen_args)
+
+    # Provide the same seed and keyword arguments to the fit and flow methods
+    seed = 1
+    # image_datagen.fit(images, augment=True, seed=seed)
+    # mask_datagen.fit(masks, augment=True, seed=seed)
+
+    image_generator = image_datagen.flow_from_directory('data/train/images',
+                                                        target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                        color_mode='grayscale',
+                                                        class_mode=None,
+                                                        seed=seed)
+
+    mask_generator = mask_datagen.flow_from_directory('data/train/masks',
+                                                      target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                      color_mode='grayscale',
+                                                      class_mode=None,
+                                                      seed=seed)
+
+    # Combine generators into one which yields image and masks
+    train_generator = zip(image_generator, mask_generator)
+
+    print('-'*40)
+    print('Creating and compiling model...')
+    print('-'*40)
+    model = get_unet()
+    model_checkpoint = ModelCheckpoint('weights.h5', monitor='val_loss', save_best_only=True)
+
+    model.fit_generator(
+        train_generator,
+        steps_per_epoch=10,
+        epochs=5)
+
+    # model.fit(imgs_train, imgs_mask_train, batch_size=32, nb_epoch=20, verbose=1, shuffle=True,
+    #           validation_split=0.2, callbacks=[model_checkpoint])
+
 if __name__ == '__main__':
-    create_train_data()
-    # load_train_data()
-    # create_test_data()
+    train_and_predict()
