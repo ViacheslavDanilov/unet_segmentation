@@ -1,7 +1,5 @@
-*.mat
-
-*.npy
-
-*.png
+*.tif
 
 .idea/
+
+__pycache__/

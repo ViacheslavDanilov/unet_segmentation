@@ -2,12 +2,13 @@ import os
 import cv2
 import numpy as np
 
-DATA_TYPE = 'train'
+DATA_TYPE = 'test'
 DATA_PATH = 'data'
 EXT = 'png'
 IMG_WIDTH = 512
 IMG_HEIGHT = 512
-IS_VISUALIZE = True
+IS_VISUALIZE = False
+# NUM_IMAGES_TO_PROCESS = 20
 
 class DataProcess(object):
 
@@ -28,7 +29,12 @@ class DataProcess(object):
         if not is_exists_images_path or not is_exists_masks_path:
             i = 0
             images_list = os.listdir(images_path)
-            num_samples = int(len(images_list))
+            try:
+                num_samples = NUM_IMAGES_TO_PROCESS
+            except NameError:
+                print("Variable 'NUM_IMAGES_TO_PROCESS' not set. Full set of images will be processed.")
+                num_samples = int(len(images_list))
+
             images = np.ndarray((num_samples, self.__img_height, self.__img_width, 1), dtype=np.uint8)
             masks = np.ndarray((num_samples, self.__img_height, self.__img_width, 1), dtype=np.uint8)
 
@@ -38,34 +44,35 @@ class DataProcess(object):
             print('-' * 27)
 
             for image_name in images_list:
-                if 'mask' in image_name:
-                    continue
-                mask_name = image_name.split('.')[0] + '_mask.' + self.__img_ext
-                image = cv2.imread(os.path.join(images_path, image_name), cv2.IMREAD_GRAYSCALE)
-                mask = cv2.imread(os.path.join(masks_path, mask_name), cv2.IMREAD_GRAYSCALE)
+                while i < num_samples:
+                    if 'mask' in image_name:
+                        continue
+                    mask_name = image_name.split('.')[0] + '_mask.' + self.__img_ext
+                    image = cv2.imread(os.path.join(images_path, image_name), cv2.IMREAD_GRAYSCALE)
+                    mask = cv2.imread(os.path.join(masks_path, mask_name), cv2.IMREAD_GRAYSCALE)
 
-                if image.shape[0] != self.__img_height or image.shape[1] != self.__img_width:
-                    image, mask = self.image_rescale(image, mask)
+                    if image.shape[0] != self.__img_height or image.shape[1] != self.__img_width:
+                        image, mask = self.image_rescale(image, mask)
 
-                image = np.array([image])
-                mask = np.array([mask])
-                image = image.transpose(1, 2, 0)
-                mask = mask.transpose(1, 2, 0)
-                images[i] = image
-                masks[i] = mask
+                    image = np.array([image])
+                    mask = np.array([mask])
+                    image = image.transpose(1, 2, 0)
+                    mask = mask.transpose(1, 2, 0)
+                    images[i] = image
+                    masks[i] = mask
 
-                if IS_VISUALIZE:
-                    temp_image = images[i].reshape([512, 512])
-                    temp_mask = masks[i].reshape([512, 512])
-                    stacked_image = np.hstack((temp_image, temp_mask))
-                    # temp_name = 'Source image and its mask ({})'.format(image_name)
-                    # cv2.imshow(temp_name, stacked_image)
-                    cv2.imshow('Source image and its mask', stacked_image)
-                    cv2.waitKey(2000)
+                    if IS_VISUALIZE:
+                        temp_image = images[i].reshape([512, 512])
+                        temp_mask = masks[i].reshape([512, 512])
+                        stacked_image = np.hstack((temp_image, temp_mask))
+                        cv2.imshow('Source image and its mask', stacked_image)
+                        cv2.waitKey(2000)
 
-                if i % 100 == 0:
-                    print('Done: {0}/{1} images'.format(i, num_samples))
-                i += 1
+                    if i % 100 == 0:
+                        print('Done: {0}/{1} images'.format(i, num_samples))
+                    i += 1
+                else:
+                    break
             print('\nLoading done.')
 
             np.save(os.path.join(self.__data_path, 'npy files', self.__data_type + '_images.npy'), images)

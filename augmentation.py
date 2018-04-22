@@ -4,8 +4,8 @@ import cv2
 import Augmentor
 
 FPS_RATE = 1
-isVisualize = True
-isKerasAugmentor = False
+is_visualize = True
+is_keras_augmentor = False
 NUM_AUGMENTED_IMAGES = 10
 IMG_HEIGHT = 512
 IMG_WIDTH = 512
@@ -16,7 +16,7 @@ SOURCE_PATH = 'data/train/test augmentor/images/tumor'                          
 GROUND_TRUTH_PATH = 'data/train/test augmentor/masks/tumor'                     # For additional augmentor
 
 # Remove old images
-if isKerasAugmentor:
+if is_keras_augmentor:
     file_list = os.listdir(SAVE_PATH)
     for file_name in file_list:
         os.remove(SAVE_PATH + '/' + file_name)
@@ -26,7 +26,7 @@ else:
         os.remove(os.path.join(SOURCE_PATH, 'augmented examples/') + file_name)
 
 # Augmentation
-if isKerasAugmentor:
+if is_keras_augmentor:
     datagen_args = dict(rotation_range=80,
                         width_shift_range=0.2,
                         height_shift_range=0.2,
@@ -68,8 +68,8 @@ else:
     pipeline.sample(NUM_AUGMENTED_IMAGES)
 
 # Visualize images
-if isVisualize:
-    if isKerasAugmentor:
+if is_visualize:
+    if is_keras_augmentor:
         SAVE_PATH = SAVE_PATH
         for _, file in enumerate(os.listdir(SAVE_PATH), start=1):
             image = cv2.imread(os.path.join(SAVE_PATH, file))

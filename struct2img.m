@@ -35,11 +35,7 @@ for k = 1:numFiles
     end
     baseFileName = erase(baseFileName, '.mat');
     baseFileName = str2double(baseFileName);
-    baseFileName = num2str(baseFileName,'%03.f');
-%     baseFileNameVals = strsplit(baseFileName,'.');
-%     baseFileNameVal = str2double(baseFileNameVals{1,1});
-%     baseFileName = [num2str(baseFileNameVal,'%03.d'), '.', baseFileNameVals{1,2}];
-    
+    baseFileName = num2str(baseFileName,'%04.f');  
     image = matFile.image;
     image = uint16(image);
     image = imadjust(image);
